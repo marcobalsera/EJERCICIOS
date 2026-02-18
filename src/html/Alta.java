@@ -1,0 +1,76 @@
+package es.upm.dit.aled.lab7;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.*;
+
+
+
+/**
+ * Servlet implementation class Alta
+ */
+@WebServlet("/alta")
+public class Alta extends HttpServlet {
+
+    @Override
+    public void init() {
+    	if(getServletContext().getAttribute("repo") == null )
+    		getServletContext().setAttribute("repo", new PacienteRepository(getServletContext()));
+    }
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	    InputStream file = getServletContext().getResourceAsStream("/alta.html");
+		InputStreamReader reader1 = new InputStreamReader(file);
+		BufferedReader html = new BufferedReader(reader1);
+
+		String pagina = "", linea;
+		while((linea = html.readLine()) != null)
+			pagina += linea;
+
+		PrintWriter out = response.getWriter();
+		response.setContentType("text/html");
+		out.println(pagina);
+		out.close();
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+			
+			String nombre = request.getParameter("nombre");
+			String apellido = request.getParameter("apellidos");
+			String dni = request.getParameter("dni");
+			
+			Paciente p = new Paciente(nombre, apellido, dni);
+			
+			String camino = getServletContext().getRealPath("/alta.html");
+			String pagina = Files.readString(Paths.get(camino));
+			
+			PacienteRepository repo = (PacienteRepository)getServletContext().getAttribute("repo");
+			
+			if(repo.findByDni(dni) != null ) {
+				String mensaje = "ERROR: el paciente ya está registrado.";
+				pagina = pagina.replace("<h2></h2>", "<h2>" + mensaje + "</h2>");
+			} else {
+				repo.addPaciente(p);
+				String mensajee = "El paciente ha sido registrado.";
+				pagina = pagina.replace("<h2></h2>", mensajee);
+			}
+			
+			response.getWriter().print(pagina);
+		}
+		
+	
+}
